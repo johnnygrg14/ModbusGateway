@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Modbus Gateway</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Modbus Gateway</h1>
+
+    <h2>Protocol Options</h2>
+    <div id="protocolSelect" class="form-group">
+        <label for="protocol">Protocol</label>
+        <select id="protocol">
+            <option value="0">TCP</option>
+            <option value="1">RTU</option>
+            <option value="2">ASCII</option>
+        </select>
+    </div>
+    
+
+    <div id="ipGroup" class="form-group">
+        <label for="ipAddress">IP Address</label>
+        <input id="ipAddress" type="text" value="127.0.0.1">
+    </div>
+
+    <div id="portGroup" class="form-group">
+        <label for="port">Port</label>
+        <input id="port" type="number" value="502">
+    </div>
+
+    <div id="comGroup" class="form-group">
+        <label for="comPort">COM Port</label>
+        <input id="comPort" type="text" value="COM1">
+    </div>
+
+    <div id="baudGroup" class="form-group">
+        <label for="baudRate">Baud Rate</label>
+        <input id="baudRate" type="number" value="9600">
+    </div>
+
+    <button id="connect">
+        Connect
+    </button>
+
+    <button id="disconnect">
+        Disconnect
+    </button>
+
+    <h2>Modbus Data</h2>
+
+    <div id="functionSelect" class="form-group">
+        <label for="function">Function</label>
+        <select id="function">
+            <option value="/write-multiple-registers">Write Multiple Registers</option>
+            <option value="/write-multiple-coils">Write Multiple Coils</option>
+            <option value="/write-single-coil">Write Single Coil</option>
+            <option value="/write-single-register">Write Single Register</option>
+            <option value="/read-input-registers">Read Input Registers</option>
+            <option value="/read-coils">Read Coils</option>
+            <option value="/read-holding-registers">Read Holding Registers</option>
+            <option value="/read-discrete-inputs">Read Discrete Inputs</option>
+        </select>
+    </div>
+
+    <div id="slaveGroup" class="form-group">
+        <label for="slaveId">Slave ID</label>
+        <input id="slaveId" type="number" value="1">
+    </div>
+
+    <div id="addressGroup" class="form-group">
+        <label for="address">Address</label>
+        <input id="address" type="number" value="0">
+    </div>
+
+    <div id="countGroup" class="form-group">
+        <label for="count">Count</label>
+        <input id="count" type="number" value="1">
+    </div>
+
+    <div id="valueGroup" class="form-group">
+        <label for="value">Value</label>
+        <input id="value" type="number">
+        <select id="coilValue">
+            <option value="true">True</option>
+            <option value="false">False</option>
+        </select>
+    </div>
+
+    <div id="valuesGroup" class="form-group">
+        <label for="values">Values</label>
+        <input id="values" type="text">
+    </div>
+
+    <button id="sendButton">
+        Send Request
+    </button>
+    
+    <div id="responseGroup" class="form-group">
+        <label for="response">Response</label>
+        <textarea id="response"
+          rows="15"
+          readonly>
+        </textarea>
+    </div>
+    
+
+    <button id="clearResponse">
+        Clear response
+    </button>
+
+    <script src="script.js"></script>
+
+</body>
+</html>

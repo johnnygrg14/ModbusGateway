@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ModbusGateway_API/ModbusGateway_API.csproj" Id="38e678f7-4a46-48d6-8fc8-801b5e824831" />
+  <Project Path="ModbusGateway.Core/ModbusGateway.Core.csproj" />
+</Solution>
