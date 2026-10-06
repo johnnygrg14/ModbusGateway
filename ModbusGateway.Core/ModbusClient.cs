@@ -4,12 +4,11 @@ using NModbus.IO;
 using NModbus.Message;
 using NModbus.Serial;
 using System.IO.Ports;
-using System.Net.Sockets;
 
 public class ModbusClient 
 {
     private IModbusMaster? _master = null;
-    private TcpClient? _tcpClient = null;
+
     private SerialPort? _serialPort = null;
 
     private ModbusConnectionOptions? _options = null;
@@ -32,13 +31,6 @@ public class ModbusClient
             //This switch statement creates a modbus client based on the protocol set
             switch (_options!.Protocol)
             {
-                case ModbusProtocol.TCP:
-                    _tcpClient = new TcpClient(_options.IpAddress!, _options.Port);
-
-                    _master = factory.CreateMaster(_tcpClient);
-
-                    break;
-
                 case ModbusProtocol.RTU:
                     _serialPort = new SerialPort(
                         _options.ComPort!,
@@ -93,12 +85,6 @@ public class ModbusClient
         {
             _master.Dispose();
             _master = null;
-        }
-
-        if (_tcpClient != null)
-        {
-            _tcpClient.Dispose();
-            _tcpClient = null;
         }
 
         if(_serialPort != null)

@@ -8,5 +8,5 @@
 public class ModbusValue<T>
 {
     public int Address { get; set; }
-    public T Value { get; set; }
+    public T? Value { get; set; }
 }

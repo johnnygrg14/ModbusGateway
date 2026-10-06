@@ -21,8 +21,6 @@ function enableField(id) {
 //Enables all connection fields (used when the client is disconnected)
 function enableConnectionFields() {
     enableField("protocol");
-    enableField("ipAddress");
-    enableField("port");
     enableField("comPort");
     enableField("baudRate");
 }
@@ -54,8 +52,6 @@ function disableModbusFields() {
 //Disables connection fields (used when client is disconnected)
 function disableConnectionFields() {
     disableField("protocol");
-    disableField("ipAddress");
-    disableField("port");
     disableField("comPort");
     disableField("baudRate");
 }
@@ -79,37 +75,10 @@ async function checkConnectionStatus() {
     }
 }
 
-//This function shows the right HTML elements depending on the selected protocol
-//@todo needs to be deprecated when TCP is removed
-function updateProtocolFields() {
-    //Note: this is not needed if TCP is deprecated
-    //Get the selected protocol from the HTML element
-    const protocol = Number(document.getElementById("protocol").value);
-
-    if (protocol === 0) // TCP
-    {
-        show("ipGroup");
-        show("portGroup");
-
-        hide("comGroup");
-        hide("baudGroup");
-    }
-    else // RTU or ASCII
-    {
-        show("comGroup");
-        show("baudGroup");
-
-        hide("ipGroup");
-        hide("portGroup");
-    }
-}
-
 //These instructions listen for changes in the protocol and function select elements
 //and call the update fields functions in order to show the right fields
-document.getElementById("protocol")
-    .addEventListener("change", updateProtocolFields);
-
-document.getElementById("function")
+document
+    .getElementById("function")
     .addEventListener("change", updateFunctionFields);
 
 /*
@@ -117,13 +86,11 @@ document.getElementById("function")
 *Using this button the user tries to establish a connection
 *with a modbus client using connection options the user provided
 */
-document.getElementById("connect")
+document
+    .getElementById("connect")
     .addEventListener("click", async function () {
-        //@todo delete tcp
         //Read the data from the html page
         const protocol = Number(document.getElementById("protocol").value);
-        const ipAddress = document.getElementById("ipAddress").value;
-        const port = Number(document.getElementById("port").value);
 
         const comPort = document.getElementById("comPort").value;
         const baudRate = Number(document.getElementById("baudRate").value);
@@ -132,8 +99,6 @@ document.getElementById("connect")
         let connectionOptions =
         {
             protocol: protocol,
-            ipAddress: ipAddress,
-            port: port,
             comPort: comPort,
             baudRate: baudRate
         };
@@ -184,7 +149,8 @@ document.getElementById("connect")
 //Uses an HTTP request to call the client's disconnect function
 //Again we use an exception to make sure an error doesnt terminate
 //the program
-document.getElementById("disconnect")
+document
+    .getElementById("disconnect")
     .addEventListener("click", async function ()
     {
         try {
@@ -290,8 +256,6 @@ document
 
         //Every request needs the following parameters
         const protocol = Number(document.getElementById("protocol").value);
-        const ipAddress = document.getElementById("ipAddress").value;
-        const port = Number(document.getElementById("port").value);
 
         const comPort = document.getElementById("comPort").value;
         const baudRate = Number(document.getElementById("baudRate").value);
@@ -300,15 +264,12 @@ document
         //Read values from the page
         //Here we use the getInteger function that reads the numerical value of an html element 
         //and it checks if it is in a given range
-        //@todo do this for all elements that require it
         const slaveIdInput = getInteger("slaveId", "slaveId", 0, 247); 
         const addressInput = getInteger("address", "Address", 0, 65535);
 
         let request =
         {
             protocol: protocol,
-            ipAddress: ipAddress,
-            port: port,
 
             comPort: comPort,
             baudRate: baudRate,
@@ -473,7 +434,6 @@ document
                         `Message: ${data.message}`;
                 }
                 
-
                 return;
             }
 
@@ -485,7 +445,6 @@ document
         {
             //If something went wrong with the request we show the
             //exception error message to the user
-            //document.getElementById("response").value = err.message;
             document.getElementById("response").value = "Something went wrong.";
             console.log(err.message);
         }
@@ -500,10 +459,8 @@ document
     });
 
 //We call the update fields functions in order to show the right fields when the page is first shown
-updateProtocolFields();
 updateFunctionFields();
 checkConnectionStatus();
-
 //Reads a number from an html element and 
 //returns the number if it is within a given range
 //throws error if thats not the case

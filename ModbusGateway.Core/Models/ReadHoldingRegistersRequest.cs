@@ -1,18 +1,11 @@
-﻿public class ReadHoldingRegistersRequest
+﻿public class ReadHoldingRegistersRequest : ModbusHttpRequest
 {
-    public ModbusProtocol Protocol { get; set; }
-
+    //1 byte
     public byte SlaveId { get; set; }
 
+    //2 bytes
     public ushort Address { get; set; }
 
+    //2 bytes
     public ushort Count { get; set; }
-
-    public string? IpAddress { get; set; }
-
-    public int Port { get; set; }
-
-    public string? ComPort { get; set; }
-
-    public int BaudRate { get; set; }
 }

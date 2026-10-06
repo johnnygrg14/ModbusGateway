@@ -1,6 +1,5 @@
 ﻿public enum ModbusProtocol
 {
-    TCP = 0,
-    RTU = 1,
-    ASCII = 2,
+    RTU = 0,
+    ASCII = 1
 }
