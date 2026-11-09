@@ -1,0 +1,23 @@
+# For more info on HTTP files go to https://aka.ms/vs/httpfile
+
+@baseUrl = http://localhost:5254
+
+### Delete all connections
+DELETE {{baseUrl}}/connections
+
+### Create an RTU connection
+# @name createConnection
+POST {{baseUrl}}/connections
+Content-Type: application/json
+
+{
+    "protocol": 0,
+    "comPort": "COM1",
+    "baudRate": 9600
+}
+
+### Send a valid request
+GET {{baseUrl}}/connections/{{createConnection.response.body.$.connectionId}}/devices/1/discrete-inputs?address=0&count=3
+
+### Send an invalid request
+GET {{baseUrl}}/connections/{{createConnection.response.body.$.connectionId}}/devices/1/discrete-inputs?address=0&count=5000

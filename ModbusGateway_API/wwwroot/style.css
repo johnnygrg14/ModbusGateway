@@ -84,3 +84,35 @@ button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+.error-message {
+    color: #dc3545;
+    margin-top: 8px;
+}
+
+.connection-item{
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #666;
+    border-radius: 5px;
+}
+
+.connection-item button {
+    margin-right: 8px;
+}
+
+.connection-item.selected{
+    border: 2px solid #4CAF50;
+    background-color: #26352a;
+}
+
+#modbusFields {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: none;
+}
+
+#modbusFields:disabled {
+    opacity: 1;
+}

@@ -1,101 +1,149 @@
 ﻿using NModbus;
 using NModbus.Data;
-using NModbus.IO;
 using NModbus.Message;
 using NModbus.Serial;
 using System.IO.Ports;
 
+/// <summary>
+/// This is the class that represents a connection to a modbus device (client)
+/// It has the ability to create and release a serial connection and implements 
+/// all of the Modbus operations this application supports.
+/// </summary>
 public class ModbusClient 
 {
     private IModbusMaster? _master = null;
 
     private SerialPort? _serialPort = null;
 
-    private ModbusConnectionOptions? _options = null;
-    
+    // Modbus RTU configuration
+    private const Parity   RtuParity = Parity.None;
+    private const int      RtuDataBits = 8;
+    private const StopBits RtuStopBits = StopBits.One;
 
+    // Modbus ASCII configuration
+    private const Parity   AsciiParity = Parity.Even;
+    private const int      AsciiDataBits = 7;
+    private const StopBits AsciiStopBits = StopBits.One;
+
+
+    private ModbusConnectionOptions? _options = null;
+
+    public string? ComPort => _options?.ComPort;
+
+    public ModbusProtocol? Protocol => _options?.Protocol;
+    public int? BaudRate => _options?.BaudRate;
+    
+    private readonly object _lock = new object();
+    public bool isConnected
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _master != null &&
+                    _serialPort != null && 
+                    _serialPort.IsOpen;
+            }
+        }
+    }
 
     public ModbusClient(ModbusConnectionOptions options)
     {
         _options = options;
     }
 
+    /// <summary>
+    /// Creates a connection with a client with the given configuration.
+    /// If connection creation fails it calls the Disconnect function to 
+    /// free up the resources.
+    /// </summary>
     public void Connect()
     {
-        var factory = new ModbusFactory();
-
-        //Using an exception for safety we try to establish a connection with
-        //the provided connection options 
-        try
+        lock (_lock)
         {
-            //This switch statement creates a modbus client based on the protocol set
-            switch (_options!.Protocol)
+            var factory = new ModbusFactory();
+
+            //Using an exception for safety we try to establish a connection with
+            //the provided connection options 
+            try
             {
-                case ModbusProtocol.RTU:
-                    _serialPort = new SerialPort(
-                        _options.ComPort!,
-                        _options.BaudRate,
-                        Parity.None,
-                        8,
-                        StopBits.One);
+                //This switch statement creates a modbus client based on the protocol set
+                switch (_options!.Protocol)
+                {
+                    case ModbusProtocol.RTU:
+                        _serialPort = new SerialPort(
+                            _options.ComPort!,
+                            _options.BaudRate,
+                            RtuParity,
+                            RtuDataBits,
+                            RtuStopBits);
 
-                    if (!_serialPort.IsOpen)
-                    {
-                        _serialPort.Open();
-                    }
+                        if (!_serialPort.IsOpen)
+                        {
+                            _serialPort.Open();
+                        }
 
-                    _master = factory.CreateRtuMaster(_serialPort);
-                    break;
+                        _master = factory.CreateRtuMaster(_serialPort);
+                        break;
 
-                case ModbusProtocol.ASCII:
-                    _serialPort = new SerialPort(
-                       _options.ComPort!,
-                       _options.BaudRate,
-                       Parity.Even,
-                       7,
-                       StopBits.One);
+                    case ModbusProtocol.ASCII:
+                        _serialPort = new SerialPort(
+                           _options.ComPort!,
+                           _options.BaudRate,
+                           AsciiParity,
+                           AsciiDataBits,
+                           AsciiStopBits);
 
-                    if (!_serialPort.IsOpen)
-                    {
-                        _serialPort.Open();
-                    }
+                        if (!_serialPort.IsOpen)
+                        {
+                            _serialPort.Open();
+                        }
 
-                    _master = factory.CreateAsciiMaster(_serialPort);
-                    break;
+                        _master = factory.CreateAsciiMaster(_serialPort);
+                        break;
+                }
+
+                //10 seconds timeouts for read and write operations
+                _master!.Transport.ReadTimeout  = 10000;
+                _master!.Transport.WriteTimeout = 10000;
+                _master!.Transport.Retries = 0;
             }
-        }
-        catch
-        {
-            //In case the connection fails, we call disconnect() because 
-            //disconnect nulls every field of the object.
-            //We also throw the error so the endpoint can show it to the user
-            Disconnect();
-            throw;
+            catch
+            {
+                //In case the connection fails, we call disconnect() because 
+                //disconnect nulls every field of the object.
+                //We also throw the error so the endpoint can show it to the user
+                Disconnect();
+                throw;
+            }
         }
     }
 
-    /*
-     * This function releases an active connection
-     * It checks if a master, a tcp client or a serial port are active
-     * and disconnects them if applicable
-     */
+    /// <summary>
+    /// This function releases an active connection
+    /// It checks if a master or a serial port are active
+    /// and disconnects them if applicable
+    /// </summary>
     public void Disconnect()
     {
-        if(_master != null)
+        lock (_lock)
         {
-            _master.Dispose();
-            _master = null;
-        }
+            if (_master != null)
+            {
+                _master.Dispose();
+                _master = null;
+            }
 
-        if(_serialPort != null)
-        {
-            _serialPort.Dispose();
-            _serialPort = null;
-        }
+            if (_serialPort != null)
+            {
+                _serialPort.Dispose();
+                _serialPort = null;
+            }
 
-        if(_options != null)
-        {
-            _options = null;
+            if (_options != null)
+            {
+                _options = null;
+            }
         }
     }
 
@@ -105,10 +153,13 @@ public class ModbusClient
         ushort startAddress,
         ushort count)
     {
-        return _master!.ReadCoils(
-            slaveId, 
-            startAddress,
-            count);
+        lock(_lock)
+        {
+            return _master!.ReadCoils(
+                slaveId, 
+                startAddress,
+                count);
+        }
     }
 
     //Wrapper function for NModbus ReadInputs
@@ -117,10 +168,13 @@ public class ModbusClient
         ushort startAddress,
         ushort count)
     {
-        return _master!.ReadInputs(
-            slaveId,
-            startAddress,
-            count);
+        lock (_lock)
+        {
+            return _master!.ReadInputs(
+                slaveId,
+                startAddress,
+                count);
+        }
     }
 
     //Wrapper function for NModbus ReadHoldingRegisters
@@ -129,30 +183,13 @@ public class ModbusClient
         ushort startAddress,
         ushort count)
     {
-        return _master!.ReadHoldingRegisters(
-            slaveId,
-            startAddress,
-            count);
-    }
-
-    //Wrapper function for NModbus WriteSingleRegister
-    public void WriteSingleRegister(
-        byte slaveId,
-        ushort address,
-        ushort value)
-    {
-        //NModbus provides a broadcast function for WriteSingleRegister 
-        if(slaveId == 0)
+        lock (_lock)
         {
-            _master!.BroadcastWriteSingleRegister(address, value);
-
-            return;
+            return _master!.ReadHoldingRegisters(
+                slaveId,
+                startAddress,
+                count);
         }
-
-        _master!.WriteSingleRegister(
-            slaveId,
-            address,
-            value);
     }
 
     //Wrapper function for NModbus ReadInputRegisters
@@ -161,11 +198,44 @@ public class ModbusClient
         ushort startAddress,
         ushort count)
     {
-        return _master!.ReadInputRegisters(
-            slaveId,
-            startAddress,
-            count);
+        lock (_lock)
+        {
+            return _master!.ReadInputRegisters(
+                slaveId,
+                startAddress,
+                count);
+        }
     }
+
+    //Wrapper function for NModbus WriteSingleRegister
+    public void WriteSingleRegister(
+        byte slaveId,
+        ushort address,
+        ushort value)
+    {
+        lock (_lock)
+        {
+            //NModbus provides a broadcast function for WriteSingleRegister 
+            if (slaveId == 0)
+            {
+                _master!.BroadcastWriteSingleRegister(address, value);
+
+                return;
+            }
+
+            _master!.WriteSingleRegister(
+                slaveId,
+                address,
+                value);
+        }
+    }
+
+    //Note: Modbus Write functions require the broadcast case 
+    //NModbus does not have an implementation for a broadcast
+    //WriteMultipleRegisters, WriteMultipleCoils and WriteSingleCoil
+    //so the following code is a modified version 
+    //of the its implementation but using the function
+    //BroadcastWrite in order to support the broadcast case.
 
     //Wrapper function for NModbus WriteSingleCoil
     public void WriteSingleCoil(
@@ -173,24 +243,27 @@ public class ModbusClient
         ushort coilAddress,
         bool value)
     {
-        //NModbus doesn't provide a broadcast function for WriteSingleCoil
-        //so we implement a specialization case for broadcast here, 
-        //using NModbus' transport layer.
-        if(slaveId == 0)
+        lock (_lock)
         {
-            var request = new 
-                WriteSingleCoilRequestResponse(
-                slaveId, coilAddress, value);
+            //NModbus doesn't provide a broadcast function for WriteSingleCoil
+            //so we implement a specialization case for broadcast here, 
+            //using NModbus' transport layer.
+            if(slaveId == 0)
+            {
+                var request = new 
+                    WriteSingleCoilRequestResponse(
+                    slaveId, coilAddress, value);
 
-            _master!.Transport.BroadcastWrite(request);
+                _master!.Transport.BroadcastWrite(request);
 
-            return;
+                return;
+            }
+
+            _master!.WriteSingleCoil(
+                slaveId,
+                coilAddress,
+                value);
         }
-
-        _master!.WriteSingleCoil(
-            slaveId,
-            coilAddress,
-            value);
     }
 
     //Wrapper function for NModbus WriteMultipleCoils
@@ -199,26 +272,28 @@ public class ModbusClient
         ushort startAddress,
         bool[] data)
     {
-        if(slaveId == 0)
+        lock(_lock)
         {
-            //In the NModbus implementation of WriteMultipleCoils there is a data validation
-            //instruction but since that validation function is a private member of ModbusMaster
-            //we cannot use it here. This does not matter much though since these functions already 
-            //receive validated data from RequestValidator.
+            if (slaveId == 0)
+            {
+                //In the NModbus implementation of WriteMultipleCoils there is a data validation
+                //instruction but since that validation function is a private member of ModbusMaster
+                //we cannot use it here. This does not matter much though since these functions already 
+                //receive validated data from RequestValidator.
+                var request = new NModbus.Message.WriteMultipleCoilsRequest(
+                        slaveId,
+                        startAddress,
+                        new DiscreteCollection(data));
 
-            var request = new NModbus.Message.WriteMultipleCoilsRequest(
-                    slaveId,
-                    startAddress,
-                    new DiscreteCollection(data));
+                _master!.Transport.BroadcastWrite(request);
+                return;
+            }
 
-            _master!.Transport.BroadcastWrite(request);
-            return;
+            _master!.WriteMultipleCoils(
+                slaveId,
+                startAddress,
+                data);
         }
-
-        _master!.WriteMultipleCoils(
-            slaveId,
-            startAddress,
-            data);
     }
 
     //Wrapper function for NModbus WriteMultipleRegisters
@@ -227,28 +302,24 @@ public class ModbusClient
         ushort startAddress,
         ushort[] data)
     {
-        //Note: Modbus Write functions require the broadcast case 
-        //NModbus does not have an implementation for a broadcast
-        //WriteMultipleRegisters so the following code is a modified 
-        //version of the its implementation but using the function
-        //BroadcastWrite in order to support the broadcast case.
-        //Similar implementations will be found for any other 
-        //Broadcast Functions that NModbus doesn't support
-        if (slaveId == 0)
+        lock (_lock)
         {
-           var request = new 
-                NModbus.Message.WriteMultipleRegistersRequest(
-                    0,
-                    startAddress,
-                    new RegisterCollection(data));
+            if (slaveId == 0)
+            {
+                var request = new
+                     NModbus.Message.WriteMultipleRegistersRequest(
+                         0,
+                         startAddress,
+                         new RegisterCollection(data));
 
-            _master!.Transport.BroadcastWrite(request);
-            return;
+                _master!.Transport.BroadcastWrite(request);
+                return;
+            }
+
+            _master!.WriteMultipleRegisters(
+                slaveId,
+                startAddress,
+                data);
         }
-
-        _master!.WriteMultipleRegisters(
-            slaveId,
-            startAddress,
-            data);
     }
 }

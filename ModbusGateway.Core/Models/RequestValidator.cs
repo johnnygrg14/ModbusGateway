@@ -1,17 +1,17 @@
-﻿/*
- * This class implements functions that check the validity
- * of the data a request contains.
- * They all work very similarly but each one is dedicated to each 
- * corresponding Modbus function.
- * The data we check are the slave ID, the Starting Address when needed,
- * the count of registers and if the address plus the count will exceed 
- * the memory limits of a Modbus device as specified in the specification.
- * 
- * Each function performs a series of if statements and will return false 
- * if an issue is found along with an error that will be shown to the user.
- * They are all structured in a way where if the end of the function is reached
- * we can assume that all of the data is valid and we can return true.
- * */
+﻿/// <summary>
+/// This class implements functions that check the validity
+/// of the data a request contains.
+/// They all work very similarly but each one is dedicated to each 
+/// corresponding Modbus function.
+/// The data we check are the slave ID, the Starting Address when needed,
+/// the count of registers and if the address plus the count will exceed 
+/// the memory limits of a Modbus device as specified in the specification.
+/// 
+/// Each function performs a series of if statements and will return false 
+/// if an issue is found along with an error that will be shown to the user.
+/// They are all structured in a way where if the end of the function is reached
+/// we can assume that all of the data is valid and we can return true.
+/// </summary>
 
 public class RequestValidator
 { 
@@ -22,7 +22,7 @@ public class RequestValidator
         //Check if broadcast case was requested from a "Read" function
         if(request.SlaveId == 0)
         {
-            error = "Broadcast case only supported for \"Write\" Modbus functions.";
+            error = "Broadcast case is only supported for \"Write\" Modbus functions.";
             return false;
         }
 
@@ -62,7 +62,7 @@ public class RequestValidator
         //Check if broadcast case was requested from a "Read" function
         if (request.SlaveId == 0)
         {
-            error = "Broadcast case only supported for \"Write\" Modbus functions.";
+            error = "Broadcast case is only supported for \"Write\" Modbus functions.";
             return false;
         }
 
@@ -102,7 +102,7 @@ public class RequestValidator
         //Check if broadcast case was requested from a "Read" function
         if (request.SlaveId == 0)
         {
-            error = "Broadcast case only supported for \"Write\" Modbus functions.";
+            error = "Broadcast case is only supported for \"Write\" Modbus functions.";
             return false;
         }
 
@@ -142,7 +142,7 @@ public class RequestValidator
         //Check if broadcast case was requested from a "Read" function
         if (request.SlaveId == 0)
         {
-            error = "Broadcast case only supported for \"Write\" Modbus functions.";
+            error = "Broadcast case is only supported for \"Write\" Modbus functions.";
             return false;
         }
 

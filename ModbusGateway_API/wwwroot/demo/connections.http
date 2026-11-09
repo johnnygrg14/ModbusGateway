@@ -1,0 +1,41 @@
+# For more info on HTTP files go to https://aka.ms/vs/httpfile
+
+@baseUrl = http://localhost:5254
+
+### List connections
+GET {{baseUrl}}/connections
+
+### Create an RTU connection
+POST {{baseUrl}}/connections
+Content-Type: application/json
+
+{
+  "protocol": 0,
+  "comPort": "COM1",
+  "baudRate": 9600
+}
+
+### Create an ASCII connection
+POST {{baseUrl}}/connections
+Content-Type: application/json
+{
+  "protocol": 1,
+  "comPort": "COM5",
+  "baudRate": 9600
+}
+
+### Create an invalid connection
+POST {{baseUrl}}/connections
+Content-Type: application/json
+{
+  "protocol": 789,
+  "comPort": "ABC456",
+  "baudRate": 123456
+}
+
+
+### Get a specific connection
+GET {{baseUrl}}/connections/6a1cdf77806e4d628421033d2e93b2f0
+
+### Delete a connection
+DELETE {{baseUrl}}/connections/6a1cdf77806e4d628421033d2e93b2f0

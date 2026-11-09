@@ -14,4 +14,8 @@
     <ProjectReference Include="..\ModbusGateway.Core\ModbusGateway.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\demo\connections.http" />
+  </ItemGroup>
+
 </Project>

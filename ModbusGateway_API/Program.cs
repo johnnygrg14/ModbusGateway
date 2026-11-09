@@ -1,6 +1,8 @@
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddExceptionHandler<ModbusExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
@@ -12,9 +14,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-//Main MODBUS client object
-//It is used for communication with the modbus device
-ModbusClient? client = null;
+app.UseExceptionHandler();
+
+ModbusConnectionManager connectionManager =
+    new ModbusConnectionManager();
 
 //These constants are the starting addresses for each modbus register type
 //They are used in order to return the full address of each memory location 
@@ -33,101 +36,108 @@ const int HoldingRegisterBase = 400001;
 //therefore the following code only checks for these limits.
 //*https://www.modbus.org/file/secure/modbusoverserial.pdf
 
-//@todo check if i need to implement the broadcast case
-
 //Endpoint for establishing a client connection
 app.MapPost(
-    "/connect",
+    "/connections",
     (ModbusConnectionOptions options) =>
-    {
-        //We first check if a connection with a client 
-        //has already been established
-        if(client != null)
-        {
-            return Results.Conflict("A Modbus client is already connected.");
-        }
-
-        //Then we create a new Modbus client object with the connection options 
-        //we received from the front end 
-        //and we call the client's connect function to establish a connection
-        //We use an exception here to handle the cases of failed connection so that the program doesn't crash
-        //and we get a normal connection refused error on the front end
-        try
-        {
-            client = new ModbusClient(options);
-
-            client.Connect();
-        }
-        catch (Exception ex)
-        {
-            client = null;
-
-            return Results.BadRequest($"Connection failed: {ex.Message}");
-        }
-
-        //Because in the exception case the endpoint terminates if the code
-        //reaches this part we can assume that everything worked correctly 
-        //and we can return an Ok response to the front end
-        return Results.Ok("Connected successfully.");
-    });
-
-//Endpoint for terminating a client connection
-app.MapPost(
-    "/disconnect",
-    () =>
-    {
-        //We check if the client has an established connection
-        //If there is no connection there is nothing to disconnect
-        if(client == null)
-        {
-            return Results.Conflict("No Modbus client is connected.");
-        }
-
-        //Using an exception we call the client's disconnect function to release 
-        //the connection. The exception here is good practice in case some of the 
-        //Dispose functions throw some unexpected exception we can prevent a crash.
-        try
-        {
-            client.Disconnect();
-            client = null;
-        }
-        catch(Exception ex)
-        {
-            //We log the error to the console 
-            Console.WriteLine(ex);
-
-            //And null the client so another connection can be established.
-            client = null;
-
-            return Results.BadRequest("Failed to disconnect.");
-        }
-        
-        return Results.NoContent();
-    });
-
-//This endpoint returns a boolean based on if a client exists
-//it is used to let the front end know if a connection exists
-//so that the right html elements can be shown.
-//This exists because when the page reloads the client does not 
-//get disconnected so we need to check if there is an active connection
-//to enable the right HTML elements
-app.MapGet(
-    "/connection-status", 
-    () =>
-    {
-        bool connected = (client != null);
-
-        return Results.Ok(new { connected });
-    });
-
-//Endpoint for Read Coils (0x01)
-app.MapPost(
-    "/read-coils",
-    (ReadCoilsRequest request) =>
     {
         string error = "";
 
-        //Validate received data
+        //Check if the data to configure a serial connection makes sense
+        if(!SerialConnectionValidator
+            .Validate(options, out error))
+        {
+            return Results.BadRequest(error);
+        }
+
+        //Create a new connection using the connection manager and save its id
+        string connectionId = connectionManager.Connect(options);
+
+
+        var response = new
+        {
+            connectionId,
+            protocol = options.Protocol,
+            comPort = options.ComPort,
+            baudRate = options.BaudRate
+        };
+        return Results.Created($"/connections/{connectionId}", response);
+    });
+
+//Endpoint for terminating a client connection
+app.MapDelete(
+    "/connections/{connectionId}",
+    (string connectionId) =>
+    {
+        //Ask the connection manager to release the connection
+        bool disconnected = connectionManager.Disconnect(connectionId);
+
+        //Check if the operation succeeded 
+        if(!disconnected)
+        {
+            //Return 404 not found if the operation failed
+            return Results.NotFound("Connection was not found.");
+        }
+
+        //Return 204 no content if successful
+        return Results.NoContent();
+    });
+
+//Endpoint for releasing all open connections
+app.MapDelete(
+    "/connections", () =>
+    {
+        connectionManager.DisconnectAll();
+        return Results.NoContent();
+    });
+
+//Endpint that returns a list of active connections
+app.MapGet(
+    "/connections", 
+    () =>
+    {
+        return Results.Ok(connectionManager.GetConnectionInfo());
+    });
+
+
+//Endpoint that returns the state of a connection
+app.MapGet("/connections/{connectionId}",
+    (string connectionId) =>
+    {
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
+
+        if (client == null)
+        {
+            return Results.NotFound("Connection not found.");
+        }
+
+        return Results.Ok(new
+        {
+            connectionId,
+            comPort = client.ComPort,
+            isConnected = client.isConnected
+        });
+    });
+
+//Endpoint for Read Coils (0x01)
+app.MapGet(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}/coils/",
+    (string connectionId, 
+    byte slaveId, ushort address, ushort count) =>
+    {
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
+
+        //Create a request from the received data
+        var request = new ReadCoilsRequest
+        {
+            SlaveId = slaveId,
+            Address = address,
+            Count = count
+        };
+
+        //Validate request
+        string error = "";
         if(!RequestValidator
         .ValidateReadCoils(request, out error))
         {
@@ -139,29 +149,17 @@ app.MapPost(
         }
 
         //Check if the client is connected
-        if(client == null)
+        if(client == null || !client.isConnected)
         {
             return Results.Conflict("Not connected.");
         }
 
-        bool[] result;
-
-        try
-        {
-            //Send the request to the client 
-            result =
-                client!.ReadCoils(
-                    request.SlaveId,
-                    request.Address,
-                    request.Count);
-        }
-        catch(NModbus.SlaveException ex)
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-            );
-        }
+        //Send the request to the client 
+        bool[] result =
+            client!.ReadCoils(
+                request.SlaveId,
+                request.Address,
+                request.Count);
 
         //Format the response
         var response = 
@@ -175,12 +173,31 @@ app.MapPost(
     });
 
 //Endpoint for Read Discrete Inputs (0x02)
-app.MapPost(
-    "/read-discrete-inputs",
-    (ReadInputsRequest request) =>
+app.MapGet(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}/discrete-inputs",
+    (string connectionId,
+    byte slaveId, ushort address, ushort count) =>
     {
-        string error = "";
+        //Get the correct client based on the id given in the url
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
 
+        //Check if the client is connected
+        if (client == null || !client.isConnected)
+        {
+            return Results.Conflict("Not connected.");
+        }
+
+        //Create a request object from the received data
+        var request = new ReadInputsRequest
+        {
+            SlaveId = slaveId,
+            Address = address,
+            Count = count
+        };
+
+        //Validate request
+        string error = "";
         if(!RequestValidator
         .ValidateReadDiscreteInputs(
             request, out error))
@@ -192,29 +209,12 @@ app.MapPost(
             });
         }
 
-        //Check if the client is connected
-        if (client == null)
-        {
-            return Results.Conflict("Not connected.");
-        }
 
-        bool[] result;
-
-        try
-        {
-            //Send the request to the client
-            result = client.ReadDiscreteInputs(
+        //Send the request to the client
+        bool[] result = client.ReadDiscreteInputs(
                 request.SlaveId,
                 request.Address,
                 request.Count);
-        }
-        catch (NModbus.SlaveException ex)
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-            );
-        }
 
         //Format the response
         var response =
@@ -228,13 +228,31 @@ app.MapPost(
     });
 
 //Endpoint for Read Holding Registers (0x03)
-app.MapPost(
-    "/read-holding-registers",
-    (ReadHoldingRegistersRequest request) =>
+app.MapGet(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}/holding-registers",
+    (string connectionId,
+    byte slaveId, ushort address, ushort count) =>
     {
+        //Get the correct client based on the id given in the url
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
 
+        //Check if the client is connected
+        if (client == null || !client.isConnected)
+        {
+            return Results.Conflict("Not connected.");
+        }
+
+        //Create a request object from the received data
+        var request = new ReadHoldingRegistersRequest
+        {
+            SlaveId = slaveId,
+            Address = address,
+            Count = count
+        };
+
+        //Validate received data 
         string error = "";
-
         if (!RequestValidator
         .ValidateReadHoldingRegisters(
             request, out error))
@@ -246,30 +264,12 @@ app.MapPost(
             });
         }
 
-        //Check if the client is connected
-        if (client == null)
-        {
-            return Results.Conflict("Not connected.");
-        }
-
-        ushort[] result;
-
-        try
-        {
-            //Send the request to the client
-            result =
-                client.ReadHoldingRegisters(
-                    request.SlaveId,
-                    request.Address,
-                    request.Count);
-        }
-        catch(NModbus.SlaveException ex)
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-            );
-        }
+        //Send the request to the client
+        ushort[] result = 
+            client.ReadHoldingRegisters(
+                request.SlaveId,
+                request.Address,
+                request.Count);
 
         //Format the response
         var response =
@@ -284,10 +284,30 @@ app.MapPost(
     });
 
 //Endpoint for Read Input Registers (0x04)
-app.MapPost(
-    "/read-input-registers",
-    (ReadInputRegistersRequest request) =>
+app.MapGet(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}/input-registers",
+    (string connectionId, 
+    byte slaveId, ushort address, ushort count) =>
     {
+        //Get the correct client based on the id given in the url
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
+
+        //Check if the client is connected
+        if (client == null || !client.isConnected)
+        {
+            return Results.Conflict("Not connected.");
+        }
+
+        //Create a request object from the received data
+        var request = new ReadInputRegistersRequest
+        {
+            SlaveId = slaveId,
+            Address = address,
+            Count = count
+        };
+
+        //Validate the request
         string error = "";
         if(!RequestValidator
         .ValidateReadInputRegisters(
@@ -301,30 +321,12 @@ app.MapPost(
             });
         }
 
-        //Check if the client is connected
-        if (client == null)
-        {
-            return Results.Conflict("Not connected.");
-        }
-
-        ushort[] result;
-
-        try
-        {
-            //Send the request to the client
-            result =
-                client.ReadInputRegisters(
-                    request.SlaveId,
-                    request.Address,
-                    request.Count);
-        }
-        catch (NModbus.SlaveException ex)
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-            );
-        }
+        //Send the request to the client
+        ushort[] result =
+            client.ReadInputRegisters(
+                request.SlaveId,
+                request.Address,
+                request.Count);
 
         //Format the response 
         var response =
@@ -339,10 +341,29 @@ app.MapPost(
     });
 
 //Endpoint for Write Single Coil (0x05)
-app.MapPost(
-    "/write-single-coil",
-    (WriteSingleCoilRequest request) =>
+app.MapPut(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}" +
+    "/coils/single",
+    (string connectionId,
+    byte slaveId, 
+    ushort address, 
+    WriteSingleCoilRequest request) =>
     {
+        //Get the correct client based on the id given in the url
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
+
+        //Check if the client is connected
+        if (client == null || !client.isConnected)
+        {
+            return Results.Conflict("Not connected.");
+        }
+
+        //Create request from the data
+        request.SlaveId = slaveId;
+        request.Address = address;
+
+        //Validate request
         string error = "";
         if(!RequestValidator
         .ValidateWriteSingleCoil(
@@ -355,37 +376,40 @@ app.MapPost(
             });
         }
 
-        //Check if the client is connected
-        if (client == null)
-        {
-            return Results.Conflict("Not connected.");
-        }
-
-        try
-        {
-            //Send the request to the client
-            client.WriteSingleCoil(
-                request.SlaveId,
-                request.Address,
-                request.Value);
-        }
-        catch(NModbus.SlaveException ex)
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-            );
-        }
+        //Send the request to the client
+        client.WriteSingleCoil(
+            request.SlaveId,
+            request.Address,
+            request.Value);
 
         //Return the request to the front end
         return Results.NoContent();
     });
 
 //Endpoint for Write Single Register (0x06)
-app.MapPost(
-    "/write-single-register",
-    (WriteSingleRegisterRequest request) =>
+app.MapPut(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}" +
+    "/holding-registers/single",
+    (string connectionId, 
+    byte slaveId, 
+    ushort address,
+    WriteSingleRegisterRequest request) =>
     {
+        //Get the correct client based on the id given in the url
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
+
+        //Check if the client is connected
+        if (client == null || !client.isConnected)
+        {
+            return Results.Conflict("Not connected.");
+        }
+
+        //Add the data from the url to the request object
+        request.SlaveId = slaveId;
+        request.Address = address;
+
+        //Validate request object
         string error = "";
         if(!RequestValidator
         .ValidateWriteSingleRegister(
@@ -398,37 +422,40 @@ app.MapPost(
             });
         }
 
-        //Check if the client is connected
-        if (client == null)
-        {
-            return Results.Conflict("Not connected.");
-        }
-
-        try
-        {
-            //Send the request
-            client.WriteSingleRegister(
-                request.SlaveId,
-                request.Address,
-                request.Value);
-        }
-        catch(NModbus.SlaveException ex)
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-                );
-        }
+        //Send the request
+        client.WriteSingleRegister(
+            request.SlaveId,
+            request.Address,
+            request.Value);
 
         //Return success to the front end
         return Results.NoContent();
     });
 
 //Endpoint for Write Multiple Coils (0x0F)
-app.MapPost(
-    "/write-multiple-coils",
-    (WriteMultipleCoilsRequest request) =>
+app.MapPut(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}" +
+    "/coils/multiple",
+    (string connectionId,
+    byte slaveId, 
+    ushort address,
+    WriteMultipleCoilsRequest request) =>
     {
+        //Get the correct client based on the id given in the url
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
+
+        //Check if the client is connected
+        if (client == null || !client.isConnected)
+        {
+            return Results.Conflict("Not connected.");
+        }
+
+        //Add the values from the url to the request obj
+        request.SlaveId = slaveId;
+        request.Address = address;
+
+        //Validate the request data
         string error = "";
         if(!RequestValidator
         .ValidateWriteMultipleCoils(
@@ -441,37 +468,40 @@ app.MapPost(
             });
         }
 
-        //Check if the client is connected
-        if (client == null)
-        {
-            return Results.Conflict("Not connected.");
-        }
-
-        try
-        {
-            //Send the request to the client
-            client.WriteMultipleCoils(
-                request.SlaveId,
-                request.Address,
-                request.Values!);
-        }
-        catch (NModbus.SlaveException ex) 
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-                );
-        }
+        //Send the request to the client
+        client.WriteMultipleCoils(
+            request.SlaveId,
+            request.Address,
+            request.Values!);
 
         //Return the response to the front end
         return Results.NoContent();
     });
 
 //Endpoint for Write Multiple Registers (0x10)
-app.MapPost(
-    "/write-multiple-registers",
-    (WriteMultipleRegistersRequest request) =>
+app.MapPut(
+    "/connections/{connectionId}" +
+    "/devices/{slaveId}" +
+    "/holding-registers/multiple",
+    (string connectionId,
+    byte slaveId,
+    ushort address,
+    WriteMultipleRegistersRequest request) =>
     {
+        //Get the correct client based on the id given in the url
+        ModbusClient? client = connectionManager.GetConnection(connectionId);
+
+        //Check if the client is connected
+        if (client == null || !client.isConnected)
+        {
+            return Results.Conflict("Not connected.");
+        }
+
+        //Add the values from the url to the request object
+        request.SlaveId = slaveId;
+        request.Address = address;
+
+        //Validate request
         string error = "";
         if(!RequestValidator
         .ValidateWriteMultipleRegisters(
@@ -484,27 +514,11 @@ app.MapPost(
             });
         }
 
-        //Check if the client is connected
-        if (client == null)
-        {
-            return Results.Conflict("Not connected.");
-        }
-
-        try
-        {
-            //Call the Modbus function Write Multiple Registers
-            client.WriteMultipleRegisters(
-                request.SlaveId,
-                request.Address,
-                request.Values!);
-        }
-        catch (NModbus.SlaveException ex)
-        {
-            return Results.BadRequest(
-                ModbusExceptionFormatter
-                .Format(ex)
-                );
-        }
+        //Call the Modbus function Write Multiple Registers
+        client.WriteMultipleRegisters(
+            request.SlaveId,
+            request.Address,
+            request.Values!);
 
         //Return the result to the front end
         return Results.NoContent();

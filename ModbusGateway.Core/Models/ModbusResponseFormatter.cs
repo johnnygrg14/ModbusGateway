@@ -7,8 +7,6 @@
     //The way this function works is that it takes in the base address (given by the main program)
     //the starting address of the modbus value that was read and it creates a list of them using
     //the select function and a lambda
-
-    //@todo factcheck comment above 
     public static List<ModbusValue<T>> Format<T>(
         int baseAddress,
         ushort startingAddress,
@@ -23,4 +21,3 @@
             .ToList();
     }
 }
-//@todo static because it doesnt need to store a state
