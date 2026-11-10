@@ -20,4 +20,6 @@ Content-Type: application/json
 GET {{baseUrl}}/connections/{{createConnection.response.body.$.connectionId}}/devices/1/coils?address=0&count=3
 
 ### Send an invalid request
+
+
 GET {{baseUrl}}/connections/{{createConnection.response.body.$.connectionId}}/devices/1/coils?address=-1&count=5000
