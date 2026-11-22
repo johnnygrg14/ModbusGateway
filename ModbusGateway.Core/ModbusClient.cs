@@ -15,23 +15,15 @@ public class ModbusClient
 
     private SerialPort? _serialPort = null;
 
-    // Modbus RTU configuration
-    private const Parity   RtuParity = Parity.None;
-    private const int      RtuDataBits = 8;
-    private const StopBits RtuStopBits = StopBits.One;
-
-    // Modbus ASCII configuration
-    private const Parity   AsciiParity = Parity.Even;
-    private const int      AsciiDataBits = 7;
-    private const StopBits AsciiStopBits = StopBits.One;
-
 
     private ModbusConnectionOptions? _options = null;
 
     public string? ComPort => _options?.ComPort;
-
     public ModbusProtocol? Protocol => _options?.Protocol;
     public int? BaudRate => _options?.BaudRate;
+    public Parity? Parity => _options?.Parity;
+    public int? DataBits => _options?.DataBits;
+    public StopBits? StopBits => _options?.StopBits;
     
     private readonly object _lock = new object();
     public bool isConnected
@@ -63,42 +55,30 @@ public class ModbusClient
         {
             var factory = new ModbusFactory();
 
-            //Using an exception for safety we try to establish a connection with
-            //the provided connection options 
             try
             {
-                //This switch statement creates a modbus client based on the protocol set
+                //Create a serial port with the received configuration
+                _serialPort 
+                    = new SerialPort(
+                        _options!.ComPort,
+                        _options.BaudRate,
+                        _options.Parity,
+                        _options.DataBits,
+                        _options.StopBits);
+
+                if (!_serialPort.IsOpen)
+                {
+                    _serialPort.Open();
+                }
+
+                //Create the appropriate Modbus client based on the protocol
                 switch (_options!.Protocol)
                 {
                     case ModbusProtocol.RTU:
-                        _serialPort = new SerialPort(
-                            _options.ComPort!,
-                            _options.BaudRate,
-                            RtuParity,
-                            RtuDataBits,
-                            RtuStopBits);
-
-                        if (!_serialPort.IsOpen)
-                        {
-                            _serialPort.Open();
-                        }
-
                         _master = factory.CreateRtuMaster(_serialPort);
                         break;
 
                     case ModbusProtocol.ASCII:
-                        _serialPort = new SerialPort(
-                           _options.ComPort!,
-                           _options.BaudRate,
-                           AsciiParity,
-                           AsciiDataBits,
-                           AsciiStopBits);
-
-                        if (!_serialPort.IsOpen)
-                        {
-                            _serialPort.Open();
-                        }
-
                         _master = factory.CreateAsciiMaster(_serialPort);
                         break;
                 }
@@ -110,8 +90,8 @@ public class ModbusClient
             }
             catch
             {
-                //In case the connection fails, we call disconnect() because 
-                //disconnect nulls every field of the object.
+                //If connection fails we call Disconnect() because it releases the resources
+                //used for creating a connection 
                 //We also throw the error so the endpoint can show it to the user
                 Disconnect();
                 throw;

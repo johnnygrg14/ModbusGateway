@@ -1,8 +1,11 @@
-﻿public class ModbusConnectionOptions
+﻿using System.IO.Ports;
+
+public class ModbusConnectionOptions
 {
     public ModbusProtocol Protocol { get; set; }
-
-    //Serial (RTU/ASCII)
     public string? ComPort { get; set; }
     public int BaudRate { get; set; }
+    public Parity Parity { get; set; }
+    public int DataBits { get; set; }
+    public StopBits StopBits { get; set; }
 }

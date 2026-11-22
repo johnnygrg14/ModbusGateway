@@ -11,9 +11,12 @@ POST {{baseUrl}}/connections
 Content-Type: application/json
 
 {
-    "protocol": 0,
-    "comPort": "COM1",
-    "baudRate": 9600
+  "protocol": 0,
+  "comPort": "COM1",
+  "baudRate": 9600,
+  "parity": 0,
+  "dataBits": 8,
+  "stopBits": 1
 }
 
 ### Send a valid request

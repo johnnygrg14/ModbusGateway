@@ -11,7 +11,6 @@
 
     <div class="main-container">
 
-
         <div class="connections-section">
 
             <h2>Connection Management</h2>
@@ -49,7 +48,24 @@
 
                 <div id="baudGroup" class="form-group">
                     <label for="baudRate">Baud Rate</label>
-                    <input id="baudRate" type="number" value="9600">
+                    <select id="baudRate"></select>
+                </div>
+
+                <div id="parityGroup" class="form-group">
+                    <label for="parity">Parity</label>
+                    <select id="parity">
+                    </select>
+                </div>
+
+                <div id="dataBitsGroup" class="form-group">
+                    <label for="dataBits">Data Bits</label>
+                    <select id="dataBits">
+                    </select>
+                </div>
+
+                <div id="stopBitsGroup" class="form-group">
+                    <label for="stopBits">Stop Bits</label>
+                    <select id="stopBits"></select>
                 </div>
 
                 <button id="cancelButton">

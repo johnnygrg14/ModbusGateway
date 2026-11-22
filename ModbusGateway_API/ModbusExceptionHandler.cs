@@ -102,6 +102,17 @@ public sealed class ModbusExceptionHandler : IExceptionHandler
                 "Unhandled exception while processing {Path}",
                 context.Request.Path);
         }
+        else if(exception is FileNotFoundException)
+        {
+            statusCode = StatusCodes.Status404NotFound;
+            title = "COM Port Not found.";
+            detail = "The requested COM port was not found.";
+
+            _logger.LogError(
+                exception,
+                "Unhandled exception while processing {Path}",
+                context.Request.Path);
+        }
         //Handle unexpected exceptions
         else
         {

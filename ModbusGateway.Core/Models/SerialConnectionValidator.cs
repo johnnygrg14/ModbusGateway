@@ -42,6 +42,28 @@ public class SerialConnectionValidator
             return false;
         }
 
+        if (options.Parity < System.IO.Ports.Parity.None ||
+            options.Parity > System.IO.Ports.Parity.Space)
+        {
+            error = "Invalid parity.";
+            return false;
+        }
+
+        if (options.DataBits != 7 &&
+            options.DataBits != 8)
+        {
+            error = "Invalid data bits.";
+            return false;
+        }
+
+        if (options.StopBits != System.IO.Ports.StopBits.One &&
+            options.StopBits != System.IO.Ports.StopBits.OnePointFive &&
+            options.StopBits != System.IO.Ports.StopBits.Two)
+        {
+            error = "Invalid stop bits.";
+            return false;
+        }
+
         error = "";
         return true;
     }

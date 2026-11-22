@@ -12,7 +12,10 @@ Content-Type: application/json
 {
   "protocol": 0,
   "comPort": "COM1",
-  "baudRate": 9600
+  "baudRate": 9600,
+  "parity": 0,
+  "dataBits": 8,
+  "stopBits": 1
 }
 
 ### Create an ASCII connection
@@ -21,7 +24,10 @@ Content-Type: application/json
 {
   "protocol": 1,
   "comPort": "COM5",
-  "baudRate": 9600
+  "baudRate": 9600,
+  "parity": 0,
+  "dataBits": 7,
+  "stopBits": 1
 }
 
 ### Create an invalid connection
@@ -30,7 +36,10 @@ Content-Type: application/json
 {
   "protocol": 789,
   "comPort": "ABC456",
-  "baudRate": 123456
+  "baudRate": 123456,
+  "parity" : 94749
+  "dataBits" : 322334
+  "stopBits" : 384393
 }
 
 

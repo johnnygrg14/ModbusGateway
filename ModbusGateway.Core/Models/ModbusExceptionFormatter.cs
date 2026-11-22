@@ -1,6 +1,6 @@
 ﻿public static class ModbusExceptionFormatter
 {
-    //This class creates a json response for the javascript to 
+    //This class creates a json response for javascript to 
     //display in case of an exception
     //We subtract 0x80 from the function code because when an exception is 
     //returned by the modbus machine then 0x80 is added to the function code

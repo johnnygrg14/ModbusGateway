@@ -94,11 +94,14 @@ public class ModbusConnectionManager
         {
             return _connections.Select(entry => new ModbusConnectionInfo
             {
-                ConnectionId = entry.Key,
-                Protocol     = entry.Value.Protocol,
-                ComPort      = entry.Value.ComPort,
-                BaudRate     = entry.Value.BaudRate,
-                IsConnected  = entry.Value.isConnected
+                ConnectionId   = entry.Key,
+                Protocol       = entry.Value.Protocol,
+                ComPort        = entry.Value.ComPort,
+                BaudRate       = entry.Value.BaudRate,
+                Parity         = entry.Value.Parity,
+                DataBits       = entry.Value.DataBits,
+                StopBits       = entry.Value.StopBits,
+                IsConnected    = entry.Value.isConnected
             }).ToList();
         }
     }

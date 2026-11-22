@@ -75,6 +75,43 @@ const serialProtocols = {
     }
 };
 
+const baudRates = [
+    { value: 9600,   label: "9600" }, //9600 is first because its the "default"
+    { value: 110,    label: "110" },
+    { value: 300,    label: "300" },
+    { value: 600,    label: "600" },
+    { value: 1200,   label: "1200" },
+    { value: 2400,   label: "2400" },
+    { value: 4800,   label: "4800" },
+    { value: 14400,  label: "14400" },
+    { value: 19200,  label: "19200" },
+    { value: 38400,  label: "38400" },
+    { value: 56000,  label: "56000" },
+    { value: 57600,  label: "57600" },
+    { value: 115200, label: "115200" },
+    { value: 128000, label: "128000" },
+    { value: 256000, label: "256000" }
+];
+
+const parityBits = [
+    { value: 0, label: "None" },
+    { value: 1, label: "Odd"  },
+    { value: 2, label: "Even" },
+    { value: 3, label: "Mark" },
+    { value: 4, label: "Space" }
+];
+
+const dataBits = [
+    { value: 8, label: "8" },
+    { value: 7, label: "7"}
+];
+
+const stopBits = [
+    { value: 1, label: "1" },
+    { value: 2, label: "2" },
+    { value: 3, label: "1.5" }
+];
+
 const Elements = {
     //Connection options elements
     createConnectionButton:   document.getElementById("createConnection"),
@@ -88,6 +125,12 @@ const Elements = {
     comGroup:                 document.getElementById("comGroup"),
     baudRate:                 document.getElementById("baudRate"),
     baudGroup:                document.getElementById("baudGroup"),
+    parityGroup:              document.getElementById("parityGroup"),
+    paritySelect:             document.getElementById("parity"),
+    dataBits:                 document.getElementById("dataBits"),
+    dataBitsGroup:            document.getElementById("dataBitsGroup"),
+    stopBits:                 document.getElementById("stopBits"),
+    stopBitsGroup:            document.getElementById("stopBitsGroup"),
     connectButton:            document.getElementById("connect"),
     disconnectAllButton:      document.getElementById("disconnectAll"),
 
@@ -168,6 +211,7 @@ function updateFunctionFields() {
             hide(Elements.countGroup);
 
             show(Elements.valuesGroup);
+            Elements.values.value = "";
             break;
         case modbusFunctions.WRITE_SINGLE_REGISTER.value:
             show(Elements.valueGroup);
@@ -182,6 +226,7 @@ function updateFunctionFields() {
             hide(Elements.countGroup);
 
             show(Elements.valuesGroup);
+            Elements.values.value = "";
             break;
         case modbusFunctions.WRITE_SINGLE_COIL.value:
             hide(Elements.valuesGroup);
@@ -362,15 +407,22 @@ async function createNewConnection() {
     const protocol = Number(Elements.protocol.value);
     const comPort  = Elements.comPort.value;
     const baudRate = Number(Elements.baudRate.value);
+    const parity   = Number(Elements.paritySelect.value);
+    const dataBits = Number(Elements.dataBits.value);
+    const stopBits = Number(Elements.stopBits.value);
 
     const connectionOptions =
     {
         protocol: protocol,
         comPort:  comPort,
-        baudRate: baudRate
+        baudRate: baudRate,
+        parity:   parity,
+        dataBits: dataBits,
+        stopBits: stopBits
     };
 
     try {
+        Elements.responseField.value = "Creating connection...";
         //Send HTTP request
         const response = await fetch("/connections",
             {
@@ -384,7 +436,8 @@ async function createNewConnection() {
         //Check if the connection was successful
         //if not, show the error on the response field and terimante
         if (!response.ok) {
-            const errorMessage = await response.text();
+            const errorResponse = await response.json();
+            const errorMessage  = formatErrorResponse(errorResponse);
 
             Elements.responseField.value =
                 `Failed to create connection.\n${errorMessage}`;
@@ -403,6 +456,8 @@ async function createNewConnection() {
 
         renderConnections(connections);
         enableModbusFields();
+
+        Elements.responseField.value = "Connection created successfully.";
 
         //Hide connection configuration elements
         cancelConnectionCreationUI();
@@ -438,11 +493,18 @@ function renderConnections(connections) {
         const protocol = Object.values(serialProtocols)
             .find(protocol => protocol.value === connection.protocol);
 
+        const parityLetter =
+            parityBits.find(option =>
+                option.value === connection.parity)
+                .label
+                .charAt(0);
+
         const details = document.createElement("p");
         details.textContent =
             `${protocol.label} | ` +
             `${connection.comPort} | ` +
             `${connection.baudRate} baud | ` +
+            `${connection.dataBits}${parityLetter}${connection.stopBits} | `+
             `${connection.isConnected ? "Connected" : "Disconnected"}`;
 
         //Create a select and a disconnect button for each list entry
@@ -490,7 +552,7 @@ async function disconnectAllConnections() {
         });
 
         if (!response.ok) {
-            console.error("failed to disconnect all connections.");
+            console.error("Failed to disconnect all connections.");
             return;
         }
 
@@ -503,7 +565,6 @@ async function disconnectAllConnections() {
     catch (error) {
         console.error("Failed to disconnect all connections: ", error);
     }
-    
 }
 
 async function initializeConnections() {
@@ -647,9 +708,8 @@ function getRequestData() {
         //by the modbus specification
         if (!values.every(x =>
             x !== "" &&
-            Number.isInteger(Number(x)) &&
-            Number(x) >= 0 &&
-            Number(x) <= 65535)) {
+            isIntegerInValidRange(Number(x), 0, 65535)))
+        {
             Elements.responseField.value =
                 "All register values must be integers between 0 and 65535.";
 
@@ -689,6 +749,8 @@ async function sendModbusRequest() {
         Elements.validationError.hidden = false;
         return;
     }
+
+    Elements.responseField.value = "Sending request...";
 
     //Get the selected modbus operation
     const selectedFunction = Object.values(modbusFunctions).find(
@@ -742,7 +804,7 @@ async function sendModbusRequest() {
                 body: body
             });
 
-        //Successful write 
+        //Successful write (no response body)
         if (response.status === 204) {
             Elements.responseField.value =
                 "Write completed successfully.";
@@ -751,31 +813,17 @@ async function sendModbusRequest() {
         }
 
         //Something went wrong
-        const data = await response.json();
-
         if (!response.ok) {
+            const data = await response.json();
 
-            //Show a Modbus exception
-            if (data.error === "Modbus exception") {
-                Elements.responseField.value =
-                    `Modbus Error\n` +
-                    `Function Code: ${data.functionCode}\n` +
-                    `Exception Code: ${data.exceptionCode}\n` +
-                    `Message: ${data.message}`;
-            }
-            else {
-                //Show other kinds of exceptions
-                Elements.responseField.value =
-                    `Unexpected error\n` +
-                    `Status: ${data.status}\n` +
-                    `${data.title}\n` +
-                    `${data.detail}`;
-            }
+            Elements.responseField.value =
+                formatErrorResponse(data);
 
             return;
         }
 
-        //Unexpected successful response containing JSON
+        //Successful response containing JSON  
+        const data = await response.json();
         Elements.responseField.value =
             JSON.stringify(data, null, 2);
     }
@@ -800,6 +848,28 @@ async function initializeConnections() {
     catch (error) {
         console.error("Failed to load connections: ", error);
     }
+}
+
+function formatErrorResponse(data) {
+    let formattedMessage;
+    //Show a Modbus exception
+    if (data.error === "Modbus exception") {
+        formattedMessage = 
+            `Modbus Error\n` +
+            `Function Code: ${data.functionCode}\n` +
+            `Exception Code: ${data.exceptionCode}\n` +
+            `Message: ${data.message}`;
+    }
+    else {
+        //Show other kinds of exceptions
+        formattedMessage = 
+            `Unexpected error\n` +
+            `Status: ${data.status}\n` +
+            `${data.title}\n` +
+            `${data.detail}`;
+    }
+
+    return formattedMessage;
 }
 
 //Reads a number from an html element and 
@@ -865,5 +935,9 @@ document.addEventListener("DOMContentLoaded", initializeConnections);
 //Page initialization
 addOptionsToSelectElement(Elements.functionSelect, modbusFunctions);
 addOptionsToSelectElement(Elements.protocol, serialProtocols);
+addOptionsToSelectElement(Elements.baudRate, baudRates);
+addOptionsToSelectElement(Elements.paritySelect, parityBits);
+addOptionsToSelectElement(Elements.dataBits, dataBits);
+addOptionsToSelectElement(Elements.stopBits, stopBits);
 initializeConnections();
 initializePageUI();

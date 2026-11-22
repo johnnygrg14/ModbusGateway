@@ -53,13 +53,15 @@ app.MapPost(
         //Create a new connection using the connection manager and save its id
         string connectionId = connectionManager.Connect(options);
 
-
         var response = new
         {
             connectionId,
             protocol = options.Protocol,
-            comPort = options.ComPort,
-            baudRate = options.BaudRate
+            comPort  = options.ComPort,
+            baudRate = options.BaudRate,
+            parity   = options.Parity,
+            dataBits = options.DataBits,
+            stopBits = options.StopBits
         };
         return Results.Created($"/connections/{connectionId}", response);
     });
