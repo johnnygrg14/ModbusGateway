@@ -1,4 +1,6 @@
-﻿public class ReadCoilsRequest : ModbusHttpRequest
+﻿namespace ModbusGateway.Core;
+
+public class ReadCoilsRequest : ModbusHttpRequest
 {
     //1 byte
     public byte SlaveId { get; set; }

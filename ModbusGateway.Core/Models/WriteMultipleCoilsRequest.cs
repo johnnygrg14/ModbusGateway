@@ -1,4 +1,6 @@
-﻿public class WriteMultipleCoilsRequest : ModbusHttpRequest
+﻿namespace ModbusGateway.Core;
+
+public class WriteMultipleCoilsRequest : ModbusHttpRequest
 {
     //1 byte
     public byte SlaveId { get; set; }

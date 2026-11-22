@@ -1,4 +1,6 @@
-﻿public enum ModbusFunctions
+﻿namespace ModbusGateway.Core;
+
+public enum ModbusFunctions
 {
     ReadCoils = 0x01,
     ReadDescreteInputs = 0x02,

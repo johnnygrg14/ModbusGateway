@@ -1,4 +1,6 @@
-﻿/// <summary>
+﻿namespace ModbusGateway.Core;
+
+/// <summary>
 /// This class is used for response formatting
 /// It has two attributes.The address and the value
 /// The address attribute refers to the address of a modbus value

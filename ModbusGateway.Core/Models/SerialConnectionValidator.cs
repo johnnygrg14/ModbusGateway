@@ -1,4 +1,6 @@
-﻿/// <summary>
+﻿namespace ModbusGateway.Core;
+
+/// <summary>
 /// This class makes sure the data the server received to establish a 
 /// serial connection is valid.
 /// </summary>

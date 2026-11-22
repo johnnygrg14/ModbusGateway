@@ -1,4 +1,6 @@
-﻿public static class ModbusResponseFormatter
+﻿namespace ModbusGateway.Core;
+
+public static class ModbusResponseFormatter
 {
     //This function returns a list of formatted modbus data received from a read modbus function
     //The data type of the list is another class named ModbusValue which takes in a generic

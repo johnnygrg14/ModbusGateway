@@ -1,4 +1,6 @@
-﻿using System.IO.Ports;
+﻿namespace ModbusGateway.Core;
+
+using System.IO.Ports;
 
 public class ModbusConnectionInfo
 {

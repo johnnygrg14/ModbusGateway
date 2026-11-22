@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
+using ModbusGateway.Core;
+
 /// <summary>
 /// Handles exception thrown while processing HTTP requests
 /// and creates HTTP responses that the front end can show.

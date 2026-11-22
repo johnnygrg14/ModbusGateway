@@ -1,4 +1,6 @@
-﻿/// <summary>
+﻿namespace ModbusGateway.Core;
+
+/// <summary>
 /// This class implements functions that check the validity
 /// of the data a request contains.
 /// They all work very similarly but each one is dedicated to each 

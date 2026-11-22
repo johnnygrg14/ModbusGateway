@@ -1,4 +1,6 @@
-﻿public class WriteMultipleRegistersRequest : ModbusHttpRequest
+﻿namespace ModbusGateway.Core;
+
+public class WriteMultipleRegistersRequest : ModbusHttpRequest
 {
     //1 byte
     public byte SlaveId { get; set; }

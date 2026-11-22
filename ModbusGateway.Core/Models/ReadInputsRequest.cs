@@ -1,4 +1,6 @@
-﻿public class ReadInputsRequest : ModbusHttpRequest
+﻿namespace ModbusGateway.Core;
+
+public class ReadInputsRequest : ModbusHttpRequest
 {
     //1 byte
     public byte SlaveId { get; set; }

@@ -1,4 +1,6 @@
-﻿public static class ModbusExceptionFormatter
+﻿namespace ModbusGateway.Core;
+
+public static class ModbusExceptionFormatter
 {
     //This class creates a json response for javascript to 
     //display in case of an exception

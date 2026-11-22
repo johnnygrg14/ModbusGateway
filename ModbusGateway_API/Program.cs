@@ -1,3 +1,5 @@
+using ModbusGateway.Core;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
@@ -15,6 +17,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+
 
 ModbusConnectionManager connectionManager =
     new ModbusConnectionManager();

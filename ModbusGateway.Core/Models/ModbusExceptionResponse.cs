@@ -1,4 +1,6 @@
-﻿public class ModbusExceptionResponse
+﻿namespace ModbusGateway.Core;
+
+public class ModbusExceptionResponse
 {
     public string Error { get; } = "Modbus exception";
     public int FunctionCode { get; set; }

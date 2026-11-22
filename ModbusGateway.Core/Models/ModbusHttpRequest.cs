@@ -1,4 +1,6 @@
-﻿public class ModbusHttpRequest
+﻿namespace ModbusGateway.Core;
+
+public class ModbusHttpRequest
 {
     public ModbusProtocol Protocol { get; set; }
 

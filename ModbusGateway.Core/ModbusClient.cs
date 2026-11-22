@@ -1,4 +1,6 @@
-﻿using NModbus;
+﻿namespace ModbusGateway.Core;
+
+using NModbus;
 using NModbus.Data;
 using NModbus.Message;
 using NModbus.Serial;
