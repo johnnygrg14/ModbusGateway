@@ -32,11 +32,6 @@
  - JavaScript
  - HTML & CSS
 
-### Requirements:
- - .NET 10.0
- - A Modbus-compliant device with a compatible serial interface and connection.
- - Alternatively, a Modbus emulator and a virtual serial port pair.
-
 
 ### Testing Tools:
 #### Modbus Emulators:
@@ -50,3 +45,56 @@
 ### Known Limitations:
  - The application currently only supports the Modbus functions listed above.
  - Modbus communication is performed synchronously rather than asynchronously. 
+
+### Installation and Usage
+
+#### Prerequisites
+
+Before running the application, make sure you have:
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- A Modbus-compliant device with a compatible serial interface, or:
+  - A Modbus emulator
+  - A virtual serial port pair (e.g. [VSPE](https://eterlogic.com/products.vspe.html))
+
+#### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone &lt;repository-url&gt;
+   ```
+
+2. Navigate to the API project directory:
+
+   ```bash
+   cd ModbusGateway_API
+   ```
+
+3. Restore the project dependencies:
+
+   ```bash
+   dotnet restore
+   ```
+
+#### Running the Application
+
+Run the application using the .NET CLI:
+
+```bash
+dotnet run
+```
+
+Once the application has started, open your browser and navigate to:
+
+- HTTP: `http://localhost:5254`
+- HTTPS: `https://localhost:7171`
+
+#### Using the Application
+
+1. Connect your Modbus device or configure your Modbus emulator.
+2. Select the desired serial protocol (RTU or ASCII).
+3. Configure the serial communication parameters to match your device.
+4. Establish a connection.
+5. Select a Modbus function and provide the required parameters.
+6. Send the request and inspect the response.
