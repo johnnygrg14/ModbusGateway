@@ -62,7 +62,7 @@ Before running the application, make sure you have:
 1. Clone the repository:
 
    ```bash
-   git clone &lt;repository-url&gt;
+   git clone [&lt;repository-url&gt;](https://github.com/johnnygrg14/ModbusGateway)
    ```
 
 2. Navigate to the API project directory:
