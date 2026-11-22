@@ -1,10 +1,19 @@
 ## Modbus Gateway
 
+### Table of Contents
+ - [Summary](#summary)
+ - [Main Features](#main-features)
+ - [Supported Modbus Functions](#supported-modbus-functions)
+ - [Technologies Used](#technologies-used)
+ - [Testing Tools](#testing-tools)
+ - [Known Limitations](#known-limitations)
+ - [Installation and Usage](#installation-and-usage)
+
 ### Summary:
  - Modbus Gateway is an ASP.NET Core application that allows communication between HTTP clients and a Modbus compliant device through a REST API.
  - It allows clients to establish serial connections to Modbus devices and send read and write operation requests.
 
-### Main features:
+### Main Features:
  - Modbus RTU communication
  - Modbus ASCII communication
  - Management of multiple simultaneous serial connections
