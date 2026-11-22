@@ -1,4 +1,4 @@
-﻿namespace ModbusGateway.Core;
+﻿namespace ModbusGateway.Core.Models;
 
 using System;
 using System.Collections.Generic;

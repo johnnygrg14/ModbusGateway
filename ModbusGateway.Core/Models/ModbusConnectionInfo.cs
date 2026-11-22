@@ -1,5 +1,6 @@
-﻿namespace ModbusGateway.Core;
+﻿namespace ModbusGateway.Core.Models;
 
+using ModbusGateway.Core.Enums;
 using System.IO.Ports;
 
 public class ModbusConnectionInfo

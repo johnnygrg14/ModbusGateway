@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
-using ModbusGateway.Core;
+using ModbusGateway.Core.Models;
 
 /// <summary>
 /// Handles exception thrown while processing HTTP requests

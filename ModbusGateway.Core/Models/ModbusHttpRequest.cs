@@ -1,4 +1,6 @@
-﻿namespace ModbusGateway.Core;
+﻿namespace ModbusGateway.Core.Models;
+
+using ModbusGateway.Core.Enums;
 
 public class ModbusHttpRequest
 {

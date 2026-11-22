@@ -1,4 +1,6 @@
-﻿namespace ModbusGateway.Core;
+﻿namespace ModbusGateway.Core.Models;
+
+using ModbusGateway.Core.Enums;
 
 /// <summary>
 /// This class makes sure the data the server received to establish a 

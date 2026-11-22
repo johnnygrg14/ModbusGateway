@@ -1,4 +1,4 @@
-﻿namespace ModbusGateway.Core;
+﻿namespace ModbusGateway.Core.Enums;
 
 public enum ModbusFunctions
 {

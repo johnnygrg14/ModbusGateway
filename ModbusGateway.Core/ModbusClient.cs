@@ -5,6 +5,8 @@ using NModbus.Data;
 using NModbus.Message;
 using NModbus.Serial;
 using System.IO.Ports;
+using ModbusGateway.Core.Enums;
+using ModbusGateway.Core.Models;
 
 /// <summary>
 /// This is the class that represents a connection to a modbus device (client)

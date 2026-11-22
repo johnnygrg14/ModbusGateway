@@ -1,4 +1,5 @@
 using ModbusGateway.Core;
+using ModbusGateway.Core.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,4 +1,4 @@
-﻿namespace ModbusGateway.Core;
+﻿namespace ModbusGateway.Core.Models;
 
 /// <summary>
 /// This class is used for response formatting
