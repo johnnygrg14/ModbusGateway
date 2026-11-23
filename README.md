@@ -99,6 +99,8 @@ Once the application has started, open your browser and navigate to:
 - HTTP: `http://localhost:5254`
 - HTTPS: `https://localhost:7171`
 
+Alternatively, you can use the HTTP files inside the "demo" folder that exists in the ModbusGateway_API project.
+
 #### Using the Application
 
 1. Connect your Modbus device or configure your Modbus emulator.
@@ -107,3 +109,5 @@ Once the application has started, open your browser and navigate to:
 4. Establish a connection.
 5. Select a Modbus function and provide the required parameters.
 6. Send the request and inspect the response.
+
+If you are using the HTTP files inside Visual Studio you can send requests and see the responses in JSON directly in Visual Studio. 
